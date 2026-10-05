@@ -1,0 +1,184 @@
+# Hospital Management System (MERN)
+
+A full stack hospital management system built with MongoDB, Express, React, and Node.js. This README is written as a step by step build guide for a solo developer working through this project for the first time. Follow it in order, and add features on top once the core is working.
+
+## What this project actually is
+
+A web app where:
+- Admins manage doctors, staff, and the overall system
+- Doctors manage their availability and view their patients
+- Receptionists or staff register patients and book appointments
+- Patients can view their own appointments and records (optional, can be added later)
+
+You do not need all of this on day one. Build the core first, then expand.
+
+## Tech stack
+
+- MongoDB with Mongoose for the database
+- Express for the backend API
+- React for the frontend
+- Node.js as the runtime
+- Tailwind CSS for styling
+- JWT for authentication
+
+## Recommended folder structure
+
+```
+hospital-management/
+  backend/
+    config/
+      db.js
+    models/
+      User.js
+      Patient.js
+      Doctor.js
+      Appointment.js
+      MedicalRecord.js
+    routes/
+      authRoutes.js
+      patientRoutes.js
+      doctorRoutes.js
+      appointmentRoutes.js
+    controllers/
+      authController.js
+      patientController.js
+      doctorController.js
+      appointmentController.js
+    middleware/
+      authMiddleware.js
+      roleMiddleware.js
+    server.js
+    .env
+  frontend/
+    src/
+      components/
+      pages/
+      context/
+      services/
+      App.jsx
+    tailwind.config.js
+```
+
+Keep imports direct (import each file by its own path) rather than bundling everything through index files. It is easier to trace where something comes from when you are still learning the codebase you are building.
+
+## Step 1: Plan the data before writing code
+
+Before touching Express, write out what each piece of data looks like. This saves you from restructuring your database halfway through.
+
+**User** (shared by admin, doctor, staff)
+- name
+- email
+- password (hashed)
+- role (admin, doctor, staff, patient)
+
+**Patient**
+- name
+- age
+- gender
+- contact info
+- linked user account (optional if patients log in)
+
+**Doctor**
+- name
+- specialization
+- linked user account
+- available days and time slots
+
+**Appointment**
+- patient reference
+- doctor reference
+- date and time
+- status (pending, confirmed, completed, cancelled)
+- reason for visit
+
+**MedicalRecord**
+- patient reference
+- doctor reference
+- diagnosis notes
+- prescriptions
+- date
+
+You do not need every field listed above right away. Start with the essentials and add fields as you need them.
+
+## Step 2: Set up the backend
+
+1. Create the backend folder and run `npm init -y`
+2. Install core packages: `express mongoose dotenv cors bcryptjs jsonwebtoken`
+3. Install dev tools: `nodemon`
+4. Create `server.js` and get a basic Express server running
+5. Connect to MongoDB (local MongoDB or MongoDB Atlas) inside `config/db.js`
+6. Confirm the connection works before building anything else
+
+Do not move to the next step until you see "MongoDB connected" in your terminal. Debugging a broken connection later, mixed in with other bugs, is much harder.
+
+## Step 3: Build your models
+
+Create a Mongoose schema file for each entity listed in Step 1 (User, Patient, Doctor, Appointment, MedicalRecord). Keep each in its own file inside `models/`. This is where your planning from Step 1 turns into actual schema code.
+
+## Step 4: Build authentication
+
+1. Create a register route that hashes the password with bcrypt before saving the user
+2. Create a login route that checks the password and returns a JWT
+3. Create `authMiddleware.js` that verifies the JWT on protected routes
+4. Create `roleMiddleware.js` that checks the user's role before allowing access (for example, only admin can create doctor accounts)
+
+This is the part most beginners underestimate. Test it thoroughly with a tool like Postman or Thunder Client before connecting it to your frontend. Try logging in with wrong passwords, expired tokens, and missing tokens to make sure it fails correctly.
+
+## Step 5: Build the core features (backend routes and controllers)
+
+Build these one at a time, and test each one in Postman before moving to the next.
+
+1. **Patient management**: create, view, update, delete patient records
+2. **Doctor management**: create, view, update doctor profiles and availability
+3. **Appointment booking**: create an appointment, prevent double booking the same doctor at the same time, update appointment status, cancel appointment
+4. **Medical records**: doctors can add notes and prescriptions to a patient's record after a visit
+5. **Admin dashboard data**: routes that return counts and summaries (total patients, doctors, appointments today)
+
+Do not build the frontend until at least patient management, doctor management, and appointment booking work correctly through Postman.
+
+## Step 6: Build the frontend
+
+1. Set up React with Vite (`npm create vite@latest`), then install Tailwind
+2. Create an auth context so the logged in user and their role are available throughout the app
+3. Build a login page
+4. Build role based routing, so a doctor is sent to a doctor dashboard and a receptionist is sent to a different one
+5. Build the patient list and patient registration form
+6. Build the doctor list and availability view
+7. Build the appointment booking flow, this is usually the most complex UI piece since it involves picking a doctor, date, and available time slot
+8. Build the admin dashboard with summary numbers
+9. Connect every page to your backend using a `services/` folder with functions that call your API, instead of writing fetch calls directly inside components
+
+## Step 7: Polish and extra features (add these once the core works)
+
+These are not required to have a working system, but they make it feel complete. Add them one at a time, in whatever order matters most to you:
+
+- Search and filter patients or appointments
+- Pagination on long lists
+- Email or SMS reminders for upcoming appointments
+- A calendar view for doctor schedules
+- Patient login so they can view their own appointments and records
+- File uploads for lab results or scanned documents
+- Basic reporting, like appointments per doctor per month
+- Dark mode, since you already use Tailwind this is a small addition
+- Audit log of who changed what, useful in real hospital systems
+
+## Step 8: Testing and deployment
+
+1. Test the full flow manually: register a patient, book an appointment, confirm it, add a medical record, cancel an appointment
+2. Test role restrictions again from the frontend, not just Postman, to make sure a receptionist cannot reach doctor only pages by typing the URL directly
+3. Deploy the backend to Render or Railway
+4. Deploy MongoDB using MongoDB Atlas if you were using a local database
+5. Deploy the frontend to Vercel or Netlify
+6. Set your environment variables (JWT secret, database URL) on the hosting platform, never commit them to GitHub
+
+## Environment variables you will need
+
+```
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_secret_key
+PORT=5000
+```
+
+## A note on pacing
+
+Work through this in order: data planning, backend, auth, core features, frontend, polish, deploy. Skipping ahead to the frontend before your backend routes are tested is the most common way this kind of project stalls, because you end up debugging two untested layers at once instead of one.
