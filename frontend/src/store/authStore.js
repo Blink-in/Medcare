@@ -3,8 +3,8 @@ import api from "../services/api";
 
 const useAuthStore = create((set) => ({
   user: null,
-  isAuthenticated: false,
-  isLoading: false,
+isAuthenticated: false,
+isLoading: true,
 
 
   // Register a new patient

@@ -14,7 +14,20 @@ const userSchema = new mongoose.Schema(
       default: "patient",
     },
     avatar:   { type: String, default: null },
-    isActive: { type: Boolean, default: true },
+   isActive: {
+  type: Boolean,
+  default: true,
+},
+
+isDeleted: {
+  type: Boolean,
+  default: false,
+},
+
+deletedAt: {
+  type: Date,
+  default: null,
+},
   },
   { timestamps: true }
 );

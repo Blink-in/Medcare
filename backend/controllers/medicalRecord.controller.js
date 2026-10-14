@@ -59,14 +59,17 @@ export const createMedicalRecord = async (req, res) => {
     }
 
     if (
-      appointmentRecord.patient.toString() !== patientRecord._id.toString()
+      appointmentRecord.patient.toString() !==
+      patientRecord._id.toString()
     ) {
       return res.status(403).json({
         message: "This appointment does not belong to the selected patient",
       });
     }
 
-    if (appointmentRecord.doctor.toString() !== doctor._id.toString()) {
+    if (
+      appointmentRecord.doctor.toString() !== doctor._id.toString()
+    ) {
       return res.status(403).json({
         message: "You can only create medical records for your own appointments",
       });
@@ -138,7 +141,8 @@ export const createMedicalRecord = async (req, res) => {
       if (
         symptoms.some(
           (symptom) =>
-            typeof symptom !== "string" || symptom.trim().length === 0
+            typeof symptom !== "string" ||
+            symptom.trim().length === 0
         )
       ) {
         return res.status(400).json({
@@ -190,10 +194,16 @@ export const createMedicalRecord = async (req, res) => {
       },
       {
         path: "doctor",
-        populate: {
-          path: "user",
-          select: "firstName lastName email phone",
-        },
+        populate: [
+          {
+            path: "user",
+            select: "firstName lastName email phone",
+          },
+          {
+            path: "department",
+            select: "name",
+          },
+        ],
       },
       {
         path: "appointment",
@@ -232,10 +242,16 @@ export const getMyMedicalRecords = async (req, res) => {
     })
       .populate({
         path: "doctor",
-        populate: {
-          path: "user",
-          select: "firstName lastName email phone",
-        },
+        populate: [
+          {
+            path: "user",
+            select: "firstName lastName email phone",
+          },
+          {
+            path: "department",
+            select: "name",
+          },
+        ],
       })
       .populate({
         path: "appointment",
@@ -321,10 +337,16 @@ export const getMedicalRecord = async (req, res) => {
       })
       .populate({
         path: "doctor",
-        populate: {
-          path: "user",
-          select: "firstName lastName email phone",
-        },
+        populate: [
+          {
+            path: "user",
+            select: "firstName lastName email phone",
+          },
+          {
+            path: "department",
+            select: "name",
+          },
+        ],
       })
       .populate({
         path: "appointment",
@@ -447,7 +469,8 @@ export const updateMedicalRecord = async (req, res) => {
       if (
         symptoms.some(
           (symptom) =>
-            typeof symptom !== "string" || symptom.trim().length === 0
+            typeof symptom !== "string" ||
+            symptom.trim().length === 0
         )
       ) {
         return res.status(400).json({
@@ -487,7 +510,8 @@ export const updateMedicalRecord = async (req, res) => {
         });
       }
 
-      record.treatment = treatment === null ? undefined : treatment.trim();
+      record.treatment =
+        treatment === null ? undefined : treatment.trim();
     }
 
     if (notes !== undefined) {
@@ -542,10 +566,16 @@ export const updateMedicalRecord = async (req, res) => {
       },
       {
         path: "doctor",
-        populate: {
-          path: "user",
-          select: "firstName lastName email phone",
-        },
+        populate: [
+          {
+            path: "user",
+            select: "firstName lastName email phone",
+          },
+          {
+            path: "department",
+            select: "name",
+          },
+        ],
       },
       {
         path: "appointment",
@@ -579,10 +609,16 @@ export const getMedicalRecords = async (req, res) => {
       })
       .populate({
         path: "doctor",
-        populate: {
-          path: "user",
-          select: "firstName lastName email phone",
-        },
+        populate: [
+          {
+            path: "user",
+            select: "firstName lastName email phone",
+          },
+          {
+            path: "department",
+            select: "name",
+          },
+        ],
       })
       .populate({
         path: "appointment",
@@ -636,4 +672,3 @@ export const deleteMedicalRecord = async (req, res) => {
     });
   }
 };
-

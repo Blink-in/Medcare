@@ -1,17 +1,20 @@
 import mongoose from "mongoose";
-import User from "../models/userModel.js";
 
+import User from "../models/userModel.js";
 
 export const getUsers = async (req, res) => {
   try {
-    const users = await User.find();
+    const users = await User.find({
+      isDeleted: { $ne: true },
+    }).sort({
+      createdAt: -1,
+    });
 
     return res.status(200).json({
       message: "Users retrieved successfully",
       count: users.length,
       users,
     });
-
   } catch (error) {
     console.error("Get users error:", error);
 
@@ -21,22 +24,22 @@ export const getUsers = async (req, res) => {
   }
 };
 
-
 // GET SINGLE USER
-
 
 export const getUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate MongoDB ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         message: "Invalid user ID",
       });
     }
 
-    const user = await User.findById(id);
+    const user = await User.findOne({
+      _id: id,
+      isDeleted: false,
+    });
 
     if (!user) {
       return res.status(404).json({
@@ -48,7 +51,6 @@ export const getUser = async (req, res) => {
       message: "User retrieved successfully",
       user,
     });
-
   } catch (error) {
     console.error("Get user error:", error);
 
@@ -58,10 +60,7 @@ export const getUser = async (req, res) => {
   }
 };
 
-
-
 // UPDATE USER
-
 
 export const updateUser = async (req, res) => {
   try {
@@ -74,14 +73,16 @@ export const updateUser = async (req, res) => {
       phone,
     } = req.body;
 
-    // Validate ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         message: "Invalid user ID",
       });
     }
 
-    const user = await User.findById(id);
+    const user = await User.findOne({
+      _id: id,
+      isDeleted: false,
+    });
 
     if (!user) {
       return res.status(404).json({
@@ -89,9 +90,8 @@ export const updateUser = async (req, res) => {
       });
     }
 
-    // First name validation
     if (firstName !== undefined) {
-      if (firstName.trim().length < 2) {
+      if (typeof firstName !== "string" || firstName.trim().length < 2) {
         return res.status(400).json({
           message: "First name must be at least 2 characters long",
         });
@@ -100,9 +100,8 @@ export const updateUser = async (req, res) => {
       user.firstName = firstName.trim();
     }
 
-    // Last name validation
     if (lastName !== undefined) {
-      if (lastName.trim().length < 2) {
+      if (typeof lastName !== "string" || lastName.trim().length < 2) {
         return res.status(400).json({
           message: "Last name must be at least 2 characters long",
         });
@@ -111,7 +110,6 @@ export const updateUser = async (req, res) => {
       user.lastName = lastName.trim();
     }
 
-    // Email validation
     if (email !== undefined) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -124,6 +122,7 @@ export const updateUser = async (req, res) => {
       const existingUser = await User.findOne({
         email: email.toLowerCase().trim(),
         _id: { $ne: id },
+        isDeleted: false,
       });
 
       if (existingUser) {
@@ -135,7 +134,6 @@ export const updateUser = async (req, res) => {
       user.email = email.toLowerCase().trim();
     }
 
-    // Phone
     if (phone !== undefined) {
       user.phone = phone.trim();
     }
@@ -146,7 +144,6 @@ export const updateUser = async (req, res) => {
       message: "User updated successfully",
       user,
     });
-
   } catch (error) {
     console.error("Update user error:", error);
 
@@ -162,23 +159,30 @@ export const updateUser = async (req, res) => {
   }
 };
 
-
-
 // DELETE USER
-
 
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         message: "Invalid user ID",
       });
     }
 
-    const user = await User.findById(id);
+    const currentUserId = req.user?._id || req.user?.id;
+
+    if (currentUserId?.toString() === id) {
+      return res.status(400).json({
+        message: "You cannot delete your own account.",
+      });
+    }
+
+    const user = await User.findOne({
+      _id: id,
+      isDeleted: false,
+    });
 
     if (!user) {
       return res.status(404).json({
@@ -186,12 +190,16 @@ export const deleteUser = async (req, res) => {
       });
     }
 
-    await user.deleteOne();
+    user.isDeleted = true;
+    user.deletedAt = new Date();
+    user.isActive = false;
+
+    await user.save();
 
     return res.status(200).json({
-      message: "User deleted successfully",
+      message: "User moved to trash successfully",
+      user,
     });
-
   } catch (error) {
     console.error("Delete user error:", error);
 
@@ -201,23 +209,22 @@ export const deleteUser = async (req, res) => {
   }
 };
 
-
-
 // ACTIVATE / DEACTIVATE USER
-
 
 export const toggleUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         message: "Invalid user ID",
       });
     }
 
-    const user = await User.findById(id);
+    const user = await User.findOne({
+      _id: id,
+      isDeleted: false,
+    });
 
     if (!user) {
       return res.status(404).json({
@@ -225,7 +232,6 @@ export const toggleUserStatus = async (req, res) => {
       });
     }
 
-    // Toggle status
     user.isActive = !user.isActive;
 
     await user.save();
@@ -236,12 +242,68 @@ export const toggleUserStatus = async (req, res) => {
         : "User deactivated successfully",
       user,
     });
-
   } catch (error) {
     console.error("Toggle user status error:", error);
 
     return res.status(500).json({
       message: "Unable to update user status. Please try again later.",
+    });
+  }
+};
+
+// UPDATE USER ROLE
+
+export const updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid user ID",
+      });
+    }
+
+    const allowedRoles = ["admin", "doctor", "patient"];
+
+    if (!role || !allowedRoles.includes(role)) {
+      return res.status(400).json({
+        message: "Invalid role. Role must be admin, doctor, or patient.",
+      });
+    }
+
+    const currentUserId = req.user?._id || req.user?.id;
+
+    if (currentUserId?.toString() === id) {
+      return res.status(400).json({
+        message: "You cannot change your own role.",
+      });
+    }
+
+    const user = await User.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    user.role = role;
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "User role updated successfully",
+      user,
+    });
+  } catch (error) {
+    console.error("Update user role error:", error);
+
+    return res.status(500).json({
+      message: "Unable to update user role. Please try again later.",
     });
   }
 };

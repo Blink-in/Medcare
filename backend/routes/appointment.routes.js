@@ -6,11 +6,13 @@ import {
   getMyDoctorAppointments,
   getAppointment,
   cancelMyAppointment,
+  updateMyAppointment,
   updateAppointmentStatus,
   getAppointments,
   updateAppointment,
   deleteAppointment,
 } from "../controllers/appointment.controller.js";
+
 
 import { protect } from "../middleware/auth.middleware.js";
 import { authorizeRoles } from "../middleware/role.middleware.js";
@@ -29,7 +31,7 @@ router.post(
   createAppointment
 );
 
-// Get logged-in patient's appointments
+// Get logged in patient's appointments
 router.get(
   "/me",
   protect,
@@ -37,7 +39,16 @@ router.get(
   getMyAppointments
 );
 
-// Cancel logged-in patient's own appointment
+
+// Edit logged in patient's own pending appointment
+router.patch(
+  "/:id/edit",
+  protect,
+  authorizeRoles("patient"),
+  updateMyAppointment
+);
+
+// Cancel logged in patient's own appointment
 router.patch(
   "/:id/cancel",
   protect,
@@ -49,7 +60,7 @@ router.patch(
 // DOCTOR ROUTES
 
 
-// Get logged-in doctor's appointments
+// Get logged in doctor's appointments
 router.get(
   "/doctor/me",
   protect,

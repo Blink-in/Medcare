@@ -51,6 +51,15 @@ notes: {
   maxlength: [500, "Cancellation reason cannot exceed 500 characters"],
   default: null,
 },
+isDeleted: {
+  type: Boolean,
+  default: false,
+},
+
+deletedAt: {
+  type: Date,
+  default: null,
+},
   },
   { timestamps: true }
 );

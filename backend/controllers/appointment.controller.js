@@ -427,6 +427,298 @@ export const createAppointment = async (req, res) => {
   }
 };
 
+// PATIENT - UPDATE OWN PENDING APPOINTMENT
+
+export const updateMyAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      doctor,
+      department,
+      date,
+      startTime,
+      type,
+      reasonForVisit,
+      notes,
+    } = req.body;
+
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({
+        message: "Invalid appointment ID",
+      });
+    }
+
+    // Reject fields patients are not allowed to change
+    const protectedFields = ["patient", "status", "cancelReason", "endTime"];
+
+    if (protectedFields.some((field) =>
+      Object.prototype.hasOwnProperty.call(req.body, field)
+    )) {
+      return res.status(400).json({
+        message: "You cannot change protected appointment fields",
+      });
+    }
+
+    const patient = await Patient.findOne({
+      user: req.user.userId,
+    });
+
+    if (!patient) {
+      return res.status(404).json({
+        message: "Patient profile not found",
+      });
+    }
+
+    const appointment = await Appointment.findById(id);
+
+    if (!appointment) {
+      return res.status(404).json({
+        message: "Appointment not found",
+      });
+    }
+
+    if (appointment.patient.toString() !== patient._id.toString()) {
+      return res.status(403).json({
+        message: "You do not have permission to edit this appointment",
+      });
+    }
+
+    if (appointment.status !== "pending") {
+      return res.status(400).json({
+        message: "Only pending appointments can be edited",
+      });
+    }
+
+    // Require all editable booking fields
+    if (
+      !doctor ||
+      !department ||
+      !date ||
+      !startTime ||
+      !type ||
+      typeof reasonForVisit !== "string" ||
+      !reasonForVisit.trim()
+    ) {
+      return res.status(400).json({
+        message: "Doctor, department, date, start time, type, and reason are required",
+      });
+    }
+
+    if (!isValidObjectId(doctor)) {
+      return res.status(400).json({
+        message: "Invalid doctor ID",
+      });
+    }
+
+    if (!isValidObjectId(department)) {
+      return res.status(400).json({
+        message: "Invalid department ID",
+      });
+    }
+
+    if (!isValidTime(startTime)) {
+      return res.status(400).json({
+        message: "Invalid start time. Use HH:mm format",
+      });
+    }
+
+    if (!isValidAppointmentType(type)) {
+      return res.status(400).json({
+        message: "Invalid appointment type",
+      });
+    }
+
+    if (reasonForVisit.trim().length > 500) {
+      return res.status(400).json({
+        message: "Reason for visit cannot exceed 500 characters",
+      });
+    }
+
+    if (notes !== undefined && (
+      typeof notes !== "string" || notes.length > 1000
+    )) {
+      return res.status(400).json({
+        message: "Notes must be text and cannot exceed 1000 characters",
+      });
+    }
+
+    const appointmentDate = new Date(date);
+
+    if (Number.isNaN(appointmentDate.getTime())) {
+      return res.status(400).json({
+        message: "Invalid appointment date",
+      });
+    }
+
+    appointmentDate.setHours(0, 0, 0, 0);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (appointmentDate < today) {
+      return res.status(400).json({
+        message: "Appointment date cannot be in the past",
+      });
+    }
+
+    // Appointments have a fixed 30-minute duration
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = startMinutes + 30;
+
+    if (endMinutes > 24 * 60) {
+      return res.status(400).json({
+        message: "Please choose an earlier start time",
+      });
+    }
+
+    const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
+
+    const [doctorRecord, departmentRecord] = await Promise.all([
+      Doctor.findById(doctor),
+      Department.findById(department),
+    ]);
+
+    if (!doctorRecord) {
+      return res.status(404).json({
+        message: "Doctor not found",
+      });
+    }
+
+    if (!doctorRecord.isActive) {
+      return res.status(400).json({
+        message: "The selected doctor is currently unavailable",
+      });
+    }
+
+    if (!departmentRecord) {
+      return res.status(404).json({
+        message: "Department not found",
+      });
+    }
+
+    if (!departmentRecord.isActive) {
+      return res.status(400).json({
+        message: "The selected department is currently unavailable",
+      });
+    }
+
+    if (
+      !doctorRecord.department ||
+      doctorRecord.department.toString() !== departmentRecord._id.toString()
+    ) {
+      return res.status(400).json({
+        message: "The selected doctor does not belong to the selected department",
+      });
+    }
+
+    // Check the doctor's working hours for the selected day
+    const days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+
+    const appointmentDay = days[appointmentDate.getDay()];
+    const availability = doctorRecord.availability?.find(
+      (slot) => slot.day === appointmentDay
+    );
+
+    if (availability) {
+      if (availability.isAvailable === false) {
+        return res.status(400).json({
+          message: `Doctor is not available on ${appointmentDay}`,
+        });
+      }
+
+      if (availability.startTime && availability.endTime) {
+        const availableStart = timeToMinutes(availability.startTime);
+        const availableEnd = timeToMinutes(availability.endTime);
+
+        if (startMinutes < availableStart || endMinutes > availableEnd) {
+          return res.status(400).json({
+            message: `Doctor is available on ${appointmentDay} from ${availability.startTime} to ${availability.endTime}`,
+          });
+        }
+      }
+    }
+
+    const dayStart = new Date(appointmentDate);
+    dayStart.setHours(0, 0, 0, 0);
+
+    const dayEnd = new Date(appointmentDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    // Exclude this appointment when checking for conflicts
+    const conflictQuery = {
+      _id: { $ne: appointment._id },
+      date: { $gte: dayStart, $lte: dayEnd },
+      status: { $ne: "cancelled" },
+      startTime: { $lt: endTime },
+      endTime: { $gt: startTime },
+    };
+
+    const [doctorConflict, patientConflict] = await Promise.all([
+      Appointment.findOne({
+        ...conflictQuery,
+        doctor: doctorRecord._id,
+      }),
+      Appointment.findOne({
+        ...conflictQuery,
+        patient: patient._id,
+      }),
+    ]);
+
+    if (doctorConflict) {
+      return res.status(409).json({
+        message: "The doctor already has an appointment during this time",
+      });
+    }
+
+    if (patientConflict) {
+      return res.status(409).json({
+        message: "You already have another appointment during this time",
+      });
+    }
+
+    appointment.doctor = doctorRecord._id;
+    appointment.department = departmentRecord._id;
+    appointment.date = appointmentDate;
+    appointment.startTime = startTime;
+    appointment.endTime = endTime;
+    appointment.type = type;
+    appointment.reasonForVisit = reasonForVisit.trim();
+    appointment.notes = notes?.trim() || undefined;
+
+    await appointment.save();
+
+    const updatedAppointment = await Appointment.findById(appointment._id)
+      .populate({
+        path: "doctor",
+        select: "user licenseNumber specialization",
+        populate: {
+          path: "user",
+          select: "firstName lastName email",
+        },
+      })
+      .populate("department", "name description location");
+
+    return res.status(200).json({
+      message: "Appointment updated successfully",
+      appointment: updatedAppointment,
+    });
+  } catch (error) {
+    console.error("Update patient appointment error:", error);
+
+    return res.status(500).json({
+      message: "Failed to update appointment. Please try again later.",
+    });
+  }
+};
+
 
 // PATIENT - GET MY APPOINTMENTS
 
@@ -446,10 +738,15 @@ export const getMyAppointments = async (req, res) => {
     const appointments = await Appointment.find({
       patient: patient._id,
     })
-      .populate(
-        "doctor",
-        "user licenseNumber specialization qualification experience consultationFee"
-      )
+      .populate({
+        path: "doctor",
+        select:
+          "user licenseNumber specialization qualification experience consultationFee",
+        populate: {
+          path: "user",
+          select: "firstName lastName email",
+        },
+      })
       .populate(
         "department",
         "name description location"
@@ -471,9 +768,6 @@ export const getMyAppointments = async (req, res) => {
 };
 
 
-// DOCTOR - GET MY APPOINTMENTS
-
-
 export const getMyDoctorAppointments = async (req, res) => {
   try {
     const doctor = await Doctor.findOne({
@@ -489,15 +783,20 @@ export const getMyDoctorAppointments = async (req, res) => {
     const appointments = await Appointment.find({
       doctor: doctor._id,
     })
-      .populate(
-        "patient",
-        "user dateOfBirth gender bloodType address allergies emergencyContact"
-      )
+      .populate({
+        path: "patient",
+        select:
+          "user dateOfBirth gender bloodType address allergies emergencyContact",
+        populate: {
+          path: "user",
+          select: "firstName lastName email phone avatar",
+        },
+      })
       .populate(
         "department",
         "name description location"
       )
-      .sort({ date: 1, startTime: 1 });
+      .sort({ date: -1, startTime: -1 });
 
     return res.status(200).json({
       message: "Doctor appointments retrieved successfully",

@@ -1,14 +1,14 @@
 import express from "express";
 
 import {
-  createDoctor,
-  getDoctors,
-  getDoctor,
-  getMyDoctorProfile,
-  updateDoctor,
-  updateMyDoctorProfile,
-  toggleDoctorStatus,
-  verifyDoctor,
+createDoctor,
+getDoctors,
+getDoctor,
+getMyDoctorProfile,
+updateDoctor,
+updateMyDoctorProfile,
+toggleDoctorStatus,
+verifyDoctor,
 } from "../controllers/doctor.controller.js";
 
 import { protect } from "../middleware/auth.middleware.js";
@@ -16,71 +16,60 @@ import { authorizeRoles } from "../middleware/role.middleware.js";
 
 const router = express.Router();
 
-// DOCTOR SELF-SERVICE ROUTES
-// These must come before /:id routes.
-
 router.get(
-  "/me/profile",
-  protect,
-  authorizeRoles("doctor"),
-  getMyDoctorProfile
+"/me/profile",
+protect,
+authorizeRoles("doctor"),
+getMyDoctorProfile
 );
 
 router.put(
-  "/me/profile",
-  protect,
-  authorizeRoles("doctor"),
-  updateMyDoctorProfile
+"/me/profile",
+protect,
+authorizeRoles("doctor"),
+updateMyDoctorProfile
 );
 
-// ADMIN ROUTES
+router.get(
+"/",
+protect,
+authorizeRoles("admin", "doctor", "patient"),
+getDoctors
+);
 
-// Create doctor
 router.post(
-  "/",
-  protect,
-  authorizeRoles("admin"),
-  createDoctor
+"/",
+protect,
+authorizeRoles("admin"),
+createDoctor
 );
 
-// Get all doctors
 router.get(
-  "/",
-  protect,
-  authorizeRoles("admin"),
-  getDoctors
+"/:id",
+protect,
+authorizeRoles("admin"),
+getDoctor
 );
 
-// Get single doctor
-router.get(
-  "/:id",
-  protect,
-  authorizeRoles("admin"),
-  getDoctor
-);
-
-// Update doctor
 router.put(
-  "/:id",
-  protect,
-  authorizeRoles("admin"),
-  updateDoctor
+"/:id",
+protect,
+authorizeRoles("admin"),
+updateDoctor
 );
 
-// Toggle doctor active status
 router.patch(
-  "/:id/status",
-  protect,
-  authorizeRoles("admin"),
-  toggleDoctorStatus
+"/:id/status",
+protect,
+authorizeRoles("admin"),
+toggleDoctorStatus
 );
 
-// Verify/unverify doctor
 router.patch(
-  "/:id/verify",
-  protect,
-  authorizeRoles("admin"),
-  verifyDoctor
+"/:id/verify",
+protect,
+authorizeRoles("admin"),
+verifyDoctor
 );
 
 export default router;

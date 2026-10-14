@@ -47,6 +47,7 @@ const medicalRecordSchema = new mongoose.Schema(
       trim: true,
       maxlength: [5000, "Clinical notes cannot exceed 5000 characters"],
     },
+
     // ATTACHMENTS
 
     attachments: [
@@ -67,6 +68,16 @@ const medicalRecordSchema = new mongoose.Schema(
         },
       },
     ],
+
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

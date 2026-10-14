@@ -1,15 +1,15 @@
 import User from "../models/userModel.js";
-import { hashPassword, comparePassword } from "../utils/hashPassword.js";
+import Patient from "../models/patientModel.js";
 
+import { hashPassword, comparePassword } from "../utils/hashPassword.js";
 import { generateToken } from "../utils/generateToken.js";
+
 import {
   setAuthCookie,
   clearAuthCookie,
 } from "../utils/authCookie.js";
 
-
-//sign up
-
+// Sign up
 export const signup = async (req, res) => {
   try {
     const {
@@ -18,9 +18,14 @@ export const signup = async (req, res) => {
       email,
       password,
       phone,
+      dateOfBirth,
+      gender,
+      bloodType,
+      address,
+      allergies,
+      emergencyContact,
     } = req.body;
 
-    // Required fields
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({
         message:
@@ -28,39 +33,82 @@ export const signup = async (req, res) => {
       });
     }
 
-    // First name validation
-    if (firstName.trim().length < 2) {
+    if (typeof firstName !== "string" || firstName.trim().length < 2) {
       return res.status(400).json({
         message: "First name must be at least 2 characters long",
       });
     }
 
-    // Last name validation
-    if (lastName.trim().length < 2) {
+    if (typeof lastName !== "string" || lastName.trim().length < 2) {
       return res.status(400).json({
         message: "Last name must be at least 2 characters long",
       });
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!emailRegex.test(email.trim())) {
+    if (
+      typeof email !== "string" ||
+      !emailRegex.test(email.trim())
+    ) {
       return res.status(400).json({
         message: "Please provide a valid email address",
       });
     }
 
-    // Password validation
-    if (password.length < 6) {
+    if (typeof password !== "string" || password.length < 6) {
       return res.status(400).json({
         message: "Password must be at least 6 characters long",
       });
     }
 
-    // Check existing email
+    if (phone && typeof phone !== "string") {
+      return res.status(400).json({
+        message: "Phone number must be a valid text value",
+      });
+    }
+
+    if (gender && !["male", "female", "other"].includes(gender)) {
+      return res.status(400).json({
+        message: "Please provide a valid gender",
+      });
+    }
+
+    if (
+      bloodType &&
+      ![
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "AB+",
+        "AB-",
+        "O+",
+        "O-",
+        "unknown",
+      ].includes(bloodType)
+    ) {
+      return res.status(400).json({
+        message: "Please provide a valid blood type",
+      });
+    }
+
+    if (allergies && !Array.isArray(allergies)) {
+      return res.status(400).json({
+        message: "Allergies must be provided as a list",
+      });
+    }
+
+    if (emergencyContact && typeof emergencyContact !== "object") {
+      return res.status(400).json({
+        message: "Emergency contact must be an object",
+      });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
     const existingUser = await User.findOne({
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
     });
 
     if (existingUser) {
@@ -69,43 +117,73 @@ export const signup = async (req, res) => {
       });
     }
 
-    // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Create user
-    // Public signup ALWAYS creates a patient
     const user = await User.create({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
       password: hashedPassword,
-      phone: phone?.trim(),
+      phone: phone?.trim() || "",
       role: "patient",
+      isActive: true,
+      isDeleted: false,
+      deletedAt: null,
     });
 
-    // Generate JWT
-    const token = generateToken(user);
-    setAuthCookie(res, token);
+    try {
+      const patient = await Patient.create({
+        user: user._id,
+        dateOfBirth: dateOfBirth || null,
+        gender: gender || null,
+        bloodType: bloodType || "unknown",
+        address: address?.trim() || "",
+        allergies: Array.isArray(allergies)
+          ? allergies
+              .filter((allergy) => typeof allergy === "string")
+              .map((allergy) => allergy.trim())
+              .filter(Boolean)
+          : [],
+        emergencyContact: emergencyContact || {},
+        primaryDoctor: null,
+        medicalHistory: "",
+        isDeleted: false,
+        deletedAt: null,
+      });
 
-    // Convert Mongoose document to normal object
-    const userResponse = user.toObject();
+      const token = generateToken(user);
 
-    // Never send password to frontend
-    delete userResponse.password;
+      setAuthCookie(res, token);
 
-    return res.status(201).json({
-      message: "User created successfully",
-      token,
-      user: userResponse,
-    });
+      const userResponse = user.toObject();
 
+      delete userResponse.password;
+
+      return res.status(201).json({
+        message: "Account created successfully",
+        token,
+        user: userResponse,
+        patient,
+      });
+    } catch (patientError) {
+      await User.findByIdAndDelete(user._id);
+
+      throw patientError;
+    }
   } catch (error) {
     console.error("Signup error:", error);
 
-    // Duplicate email
     if (error.code === 11000) {
       return res.status(409).json({
         message: "A user with this email already exists",
+      });
+    }
+
+    if (error.name === "ValidationError") {
+      const firstError = Object.values(error.errors)[0];
+
+      return res.status(400).json({
+        message: firstError?.message || "Invalid signup details",
       });
     }
 
@@ -115,9 +193,7 @@ export const signup = async (req, res) => {
   }
 };
 
-
-// LOGIN
-
+// Login
 export const login = async (req, res) => {
   try {
     const {
@@ -125,45 +201,45 @@ export const login = async (req, res) => {
       password,
     } = req.body;
 
-    // Required fields
     if (!email || !password) {
       return res.status(400).json({
         message: "Email and password are required",
       });
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!emailRegex.test(email.trim())) {
+    if (
+      typeof email !== "string" ||
+      !emailRegex.test(email.trim())
+    ) {
       return res.status(400).json({
         message: "Please provide a valid email address",
       });
     }
 
-    // Find user
-    // password has select: false in the User model,
-    // so we explicitly include it for login.
-
     const user = await User.findOne({
       email: email.toLowerCase().trim(),
     }).select("+password");
 
-    // Do not reveal whether the email exists
     if (!user) {
       return res.status(401).json({
         message: "Invalid email or password",
       });
     }
 
-    // Check account status
+    if (user.isDeleted === true) {
+      return res.status(403).json({
+        message: "This account has been moved to Trash",
+      });
+    }
+
     if (!user.isActive) {
       return res.status(403).json({
         message: "Your account has been deactivated",
       });
     }
 
-    // Compare entered password with hashed password
     const isPasswordCorrect = await comparePassword(
       password,
       user.password
@@ -175,12 +251,12 @@ export const login = async (req, res) => {
       });
     }
 
-    // Generate JWT
     const token = generateToken(user);
+
     setAuthCookie(res, token);
 
-    // Remove password before sending user data
     const userResponse = user.toObject();
+
     delete userResponse.password;
 
     return res.status(200).json({
@@ -188,7 +264,6 @@ export const login = async (req, res) => {
       token,
       user: userResponse,
     });
-
   } catch (error) {
     console.error("Login error:", error);
 
@@ -198,15 +273,9 @@ export const login = async (req, res) => {
   }
 };
 
-
-
-// GET CURRENT USER
-
+// Get current user
 export const getMe = async (req, res) => {
   try {
-    // auth.middleware.js will eventually put the
-    // authenticated user's information inside req.user.
-
     const user = await User.findById(req.user.userId);
 
     if (!user) {
@@ -215,21 +284,33 @@ export const getMe = async (req, res) => {
       });
     }
 
+    if (user.isDeleted === true) {
+      return res.status(403).json({
+        message: "This account has been moved to Trash",
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        message: "Your account has been deactivated",
+      });
+    }
+
     return res.status(200).json({
       message: "Current user retrieved successfully",
       user,
     });
-
   } catch (error) {
     console.error("Get current user error:", error);
 
     return res.status(500).json({
-      message: "Unable to retrieve current user. Please try again later.",
+      message:
+        "Unable to retrieve current user. Please try again later.",
     });
   }
 };
 
-// Logout user
+// Logout
 export const logout = async (req, res) => {
   try {
     clearAuthCookie(res);
@@ -245,6 +326,3 @@ export const logout = async (req, res) => {
     });
   }
 };
-
-
-

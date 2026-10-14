@@ -5,6 +5,7 @@ import {
   updateUser,
   deleteUser,
   toggleUserStatus,
+  updateUserRole,
 } from "../controllers/user.controller.js";
 
 import { protect } from "../middleware/auth.middleware.js";
@@ -51,6 +52,13 @@ router.patch(
   protect,
   authorizeRoles("admin"),
   toggleUserStatus
+);
+
+router.patch(
+  "/:id/role",
+  protect,
+  authorizeRoles("admin"),
+  updateUserRole
 );
 
 export default router;

@@ -81,6 +81,15 @@ const prescriptionSchema = new mongoose.Schema(
       },
       default: "active",
     },
+    isDeleted: {
+  type: Boolean,
+  default: false,
+},
+
+deletedAt: {
+  type: Date,
+  default: null,
+},
   },
   {
     timestamps: true,

@@ -11,13 +11,13 @@ const patientSchema = new mongoose.Schema(
 
     dateOfBirth: {
       type: Date,
-      required: true,
+      default: null,
     },
 
     gender: {
       type: String,
       enum: ["male", "female", "other"],
-      required: true,
+      default: null,
     },
 
     bloodType: {
@@ -74,6 +74,16 @@ const patientSchema = new mongoose.Schema(
       trim: true,
       maxlength: [3000, "Medical history cannot exceed 3000 characters"],
     },
+
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -82,7 +92,6 @@ const patientSchema = new mongoose.Schema(
   }
 );
 
-// Virtual: calculate age from date of birth
 patientSchema.virtual("age").get(function () {
   if (!this.dateOfBirth) return null;
 

@@ -1,8 +1,8 @@
+
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   Activity,
   CalendarDays,
-  ClipboardList,
   FileText,
   HeartPulse,
   LayoutDashboard,
@@ -97,6 +97,11 @@ const navigation = {
       icon: LayoutDashboard,
     },
     {
+      label: "My Profile",
+      path: "/patient/profile",
+      icon: UserRound,
+    },
+    {
       label: "My Appointments",
       path: "/patient/appointments",
       icon: CalendarDays,
@@ -170,6 +175,7 @@ const DashboardLayout = () => {
 
           <button
             type="button"
+            aria-label="Close sidebar"
             onClick={() => setSidebarOpen(false)}
             className="rounded-lg p-2 text-[#718078] hover:bg-[#f1f7f4] lg:hidden"
           >
@@ -223,6 +229,7 @@ const DashboardLayout = () => {
         <header className="sticky top-0 z-30 flex h-[76px] items-center justify-between border-b border-[#dcebe4] bg-white/95 px-5 backdrop-blur-sm sm:px-8">
           <button
             type="button"
+            aria-label="Open sidebar"
             onClick={() => setSidebarOpen(true)}
             className="rounded-xl p-2 text-[#5f746b] hover:bg-[#f1f7f4] lg:hidden"
           >
