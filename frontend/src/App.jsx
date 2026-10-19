@@ -28,6 +28,8 @@ import DoctorPatients from "./pages/doctor/DoctorPatients";
 import AdminMedicalRecords from "./pages/admin/AdminMedicalRecords";
 import AdminDepartments from "./pages/admin/AdminDepartments";
 import AdminTrash from "./pages/admin/AdminTrash";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 function App() {
   return (
     <BrowserRouter>
@@ -35,6 +37,8 @@ function App() {
         <Route path="/" element={<Homepage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>

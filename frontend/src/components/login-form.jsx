@@ -117,6 +117,14 @@ export function LoginForm({
             </span>
           )}
         </Button>
+        <div className="-mt-2 flex justify-center">
+  <Link
+    to="/forgot-password"
+    className="text-[13px] font-semibold text-[#118961] underline-offset-4 hover:underline"
+  >
+    Forgot password?
+  </Link>
+</div>
       </form>
 
       <div className="my-8 flex items-center gap-4">
