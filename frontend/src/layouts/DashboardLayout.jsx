@@ -12,6 +12,7 @@ import {
   Stethoscope,
   Users,
   UserRound,
+  Trash2,
   X,
 } from "lucide-react";
 import { useState } from "react";
@@ -59,6 +60,11 @@ const navigation = {
       label: "Prescriptions",
       path: "/admin/prescriptions",
       icon: Pill,
+    },
+    {
+      label: "Trash",
+      path: "/admin/trash",
+      icon: Trash2,
     },
   ],
 

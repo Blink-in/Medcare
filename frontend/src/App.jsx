@@ -27,6 +27,7 @@ import AdminPrescriptions from "./pages/admin/AdminPrescriptions";
 import DoctorPatients from "./pages/doctor/DoctorPatients";
 import AdminMedicalRecords from "./pages/admin/AdminMedicalRecords";
 import AdminDepartments from "./pages/admin/AdminDepartments";
+import AdminTrash from "./pages/admin/AdminTrash";
 function App() {
   return (
     <BrowserRouter>
@@ -58,6 +59,8 @@ function App() {
                <Route path="/admin/medical-records" element={<AdminMedicalRecords />} />
 
                <Route path="/admin/departments" element={<AdminDepartments />} />
+               
+               <Route path="/admin/trash" element={<AdminTrash />} />
             </Route>
 
             <Route element={<RoleRoute allowedRoles={["doctor"]} />}>

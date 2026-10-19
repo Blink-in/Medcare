@@ -27,3 +27,18 @@ export const updateUserRole = async (id, role) => {
 
   return response.data;
 };
+
+export const getTrashedUsers = async () => {
+  const response = await api.get("/users/trash");
+  return response.data;
+};
+
+export const restoreUser = async (id) => {
+  const response = await api.patch(`/users/trash/${id}/restore`);
+  return response.data;
+};
+
+export const permanentlyDeleteUser = async (id) => {
+  const response = await api.delete(`/users/trash/${id}/permanent`);
+  return response.data;
+};

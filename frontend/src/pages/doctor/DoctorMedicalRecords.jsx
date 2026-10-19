@@ -323,4 +323,4 @@ const DoctorMedicalRecords = () => {
 };
 
 export default DoctorMedicalRecords;
-\n
+
