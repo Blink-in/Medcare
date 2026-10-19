@@ -1,5 +1,3 @@
-
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   Activity,
   CalendarDays,
@@ -15,6 +13,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 import useAuthStore from "../store/authStore";
@@ -169,9 +168,9 @@ const DashboardLayout = () => {
             </div>
 
             <div>
-              <h1 className="text-[20px] font-bold leading-none text-[#12372b]">
+              <Link to="/"><h1 className="text-[20px] font-bold leading-none text-[#12372b]">
                 MedCare
-              </h1>
+              </h1></Link>
 
               <p className="mt-1 text-[10px] font-medium text-[#789087]">
                 Hospital Management

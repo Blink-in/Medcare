@@ -1,6 +1,9 @@
+
 import { Link } from "react-router-dom";
-import { Activity, Menu, X } from "lucide-react";
+import { Activity, Menu, X, LayoutDashboard } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+
+import useAuthStore from "../../store/authStore.js";
 
 const navigation = [
   { label: "Home", to: "/", id: "top" },
@@ -9,13 +12,24 @@ const navigation = [
   { label: "About Us", to: "/#about", id: "about" },
 ];
 
+const dashboardPaths = {
+  admin: "/admin/dashboard",
+  doctor: "/doctor/dashboard",
+  patient: "/patient/dashboard",
+};
+
 const HomeNavbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("top");
   const progressRef = useRef(null);
 
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+
   const closeMenu = () => setMenuOpen(false);
+
+  const dashboardPath = dashboardPaths[user?.role] || "/patient/dashboard";
+  const loggedIn = isAuthenticated && Boolean(user);
 
   useEffect(() => {
     let frame;
@@ -23,9 +37,12 @@ const HomeNavbar = () => {
     const onScroll = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const max = document.documentElement.scrollHeight - window.innerHeight;
+        const max =
+          document.documentElement.scrollHeight - window.innerHeight;
         const progress = max > 0 ? window.scrollY / max : 0;
+
         setScrolled(window.scrollY > 16);
+
         if (progressRef.current) {
           progressRef.current.style.transform = `scaleX(${progress})`;
         }
@@ -34,6 +51,7 @@ const HomeNavbar = () => {
 
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
+
     return () => {
       window.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(frame);
@@ -62,6 +80,7 @@ const HomeNavbar = () => {
     const onTop = () => {
       if (window.scrollY < 200) setActive("top");
     };
+
     window.addEventListener("scroll", onTop, { passive: true });
 
     return () => {
@@ -69,6 +88,39 @@ const HomeNavbar = () => {
       window.removeEventListener("scroll", onTop);
     };
   }, []);
+
+  const authLinks = (
+    <>
+      {loggedIn ? (
+        <Link
+          to={dashboardPath}
+          onClick={closeMenu}
+          className="flex items-center justify-center gap-2 rounded-full bg-green-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-800 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
+        >
+          <LayoutDashboard className="h-4 w-4" />
+          Dashboard
+        </Link>
+      ) : (
+        <>
+          <Link
+            to="/login"
+            onClick={closeMenu}
+            className="rounded-full px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Log in
+          </Link>
+
+          <Link
+            to="/signup"
+            onClick={closeMenu}
+            className="rounded-full bg-green-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-800 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
+          >
+            Get started
+          </Link>
+        </>
+      )}
+    </>
+  );
 
   return (
     <header className="hm sticky top-0 z-50 px-3 pt-3 sm:px-5">
@@ -89,6 +141,7 @@ const HomeNavbar = () => {
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-700 text-white">
               <Activity className="h-5 w-5" />
             </span>
+
             <span className="font-display text-xl font-semibold tracking-tight text-slate-900">
               Med<span className="text-green-700">Care</span>
             </span>
@@ -111,19 +164,14 @@ const HomeNavbar = () => {
           </nav>
 
           <div className="hidden items-center gap-2 lg:flex">
-            <Link
-              to="/login"
-              className="rounded-full px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Log in
-            </Link>
-
-            <Link
-              to="/signup"
-              className="rounded-full bg-green-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-800 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
-            >
-              Get started
-            </Link>
+            {isLoading ? (
+              <div
+                className="h-10 w-28 animate-pulse rounded-full bg-slate-100"
+                aria-label="Loading account"
+              />
+            ) : (
+              authLinks
+            )}
           </div>
 
           <button
@@ -133,7 +181,11 @@ const HomeNavbar = () => {
             aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={menuOpen}
           >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {menuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
           </button>
         </div>
 
@@ -161,21 +213,12 @@ const HomeNavbar = () => {
                 ))}
               </nav>
 
-              <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
-                <Link
-                  to="/login"
-                  onClick={closeMenu}
-                  className="rounded-full border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-700"
-                >
-                  Log in
-                </Link>
-                <Link
-                  to="/signup"
-                  onClick={closeMenu}
-                  className="rounded-full bg-green-700 px-4 py-3 text-center text-sm font-semibold text-white"
-                >
-                  Get started
-                </Link>
+              <div className="mt-3 flex flex-col gap-3 border-t border-slate-100 pt-4">
+                {isLoading ? (
+                  <div className="h-11 animate-pulse rounded-full bg-slate-100" />
+                ) : (
+                  authLinks
+                )}
               </div>
             </div>
           </div>
