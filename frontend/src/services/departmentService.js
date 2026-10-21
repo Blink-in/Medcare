@@ -29,3 +29,8 @@ export const toggleDepartmentStatus = async (id) => {
   const response = await api.patch(`/departments/${id}/status`);
   return response.data;
 };
+
+export const getPublicDepartments = async () => {
+  const response = await api.get("/departments/public");
+  return response.data;
+};

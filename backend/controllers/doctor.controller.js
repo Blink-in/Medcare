@@ -202,6 +202,42 @@ export const getDoctors = async (req, res) => {
   }
 };
 
+// GET PUBLIC DOCTOR DIRECTORY
+// Keep this separate from the authenticated management list so a visitor never
+// receives email addresses, phone numbers, licence numbers, or availability.
+export const getPublicDoctors = async (req, res) => {
+  try {
+    const doctors = await Doctor.find({ isActive: true, isVerified: true })
+      .select("specialization qualification experience bio department user")
+      .populate({
+        path: "user",
+        match: { isActive: true, isDeleted: { $ne: true } },
+        select: "firstName lastName avatar",
+      })
+      .populate({
+        path: "department",
+        match: { isActive: true, isDeleted: { $ne: true } },
+        select: "name description location",
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const publicDoctors = doctors.filter(
+      (doctor) => doctor.user && doctor.department
+    );
+
+    return res.status(200).json({
+      count: publicDoctors.length,
+      doctors: publicDoctors,
+    });
+  } catch (error) {
+    console.error("Get public doctors error:", error);
+    return res.status(500).json({
+      message: "Failed to retrieve public doctor profiles",
+    });
+  }
+};
+
 // GET SINGLE DOCTOR
 export const getDoctor = async (req, res) => {
   try {

@@ -12,7 +12,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getDepartments } from "../../services/departmentService";
+import { getPublicDepartments } from "../../services/departmentService";
 import HomeReveal from "./HomeReveal";
 import HomeSectionHeading from "./HomeSectionHeading";
 
@@ -30,6 +30,19 @@ const departmentIcons = [
 // On large screens the grid has 4 columns. These cards span 2 columns
 // so a full set of 8 departments fills every row.
 const wideCards = [0, 5, 6, 7];
+
+// Representative clinical spaces for the public directory cards. These are
+// intentionally presented as stock visuals, not photographs of MedCare sites.
+const departmentImages = [
+  "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1000&q=85",
+  "https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=1000&q=85",
+  "https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=1000&q=85",
+  "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=1000&q=85",
+  "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=1000&q=85",
+  "https://images.unsplash.com/photo-1504813184591-01572f98c85f?auto=format&fit=crop&w=1000&q=85",
+  "https://images.unsplash.com/photo-1504439468489-c8920d796a29?auto=format&fit=crop&w=1000&q=85",
+  "https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?auto=format&fit=crop&w=1000&q=85",
+];
 
 const DepartmentSkeleton = () => (
   <div className="animate-pulse rounded-3xl border border-slate-200 bg-white p-6">
@@ -53,7 +66,7 @@ const HomeDepartments = () => {
         setLoading(true);
         setError("");
 
-        const data = await getDepartments();
+        const data = await getPublicDepartments();
         const items = data.departments || data.data?.departments || [];
 
         if (active) {
@@ -132,6 +145,7 @@ const HomeDepartments = () => {
               const Icon = departmentIcons[index % departmentIcons.length];
               const featured = index === 0;
               const wide = wideCards.includes(index);
+              const image = departmentImages[index % departmentImages.length];
 
               return (
                 <HomeReveal
@@ -146,7 +160,14 @@ const HomeDepartments = () => {
                         : "border-slate-200 bg-white"
                     }`}
                   >
-                    <span className="absolute inset-0 translate-y-full bg-green-700 transition-transform duration-500 ease-out group-hover:translate-y-0" />
+                    <img
+                      src={image}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full scale-105 object-cover opacity-0 transition duration-700 ease-out group-hover:scale-100 group-hover:opacity-100"
+                    />
+                    <span className="absolute inset-0 bg-gradient-to-t from-[#0a3326]/95 via-green-800/75 to-green-700/35 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
                     <div className="relative flex items-start justify-between">
                       <span

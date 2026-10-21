@@ -265,3 +265,26 @@ export const toggleDepartmentStatus = async (req, res) => {
     });
   }
 };
+
+// GET PUBLIC DEPARTMENT DIRECTORY
+export const getPublicDepartments = async (req, res) => {
+  try {
+    const departments = await Department.find({
+      isActive: true,
+      isDeleted: { $ne: true },
+    })
+      .select("name description location")
+      .sort({ name: 1 })
+      .lean();
+
+    return res.status(200).json({
+      count: departments.length,
+      departments,
+    });
+  } catch (error) {
+    console.error("Get public departments error:", error);
+    return res.status(500).json({
+      message: "Failed to retrieve public departments",
+    });
+  }
+};

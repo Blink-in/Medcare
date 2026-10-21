@@ -5,6 +5,11 @@ export const getDoctors = async () => {
   return response.data;
 };
 
+export const getPublicDoctors = async () => {
+  const response = await api.get("/doctors/public");
+  return response.data;
+};
+
 export const getDoctor = async (id) => {
   const response = await api.get(`/doctors/${id}`);
   return response.data;

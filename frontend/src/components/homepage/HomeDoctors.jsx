@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Stethoscope } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getDoctors } from "../../services/doctorService";
+import { getPublicDoctors } from "../../services/doctorService";
 import HomeReveal from "./HomeReveal";
 import HomeSectionHeading from "./HomeSectionHeading";
 
@@ -41,7 +41,7 @@ const HomeDoctors = () => {
         setLoading(true);
         setError("");
 
-        const data = await getDoctors();
+        const data = await getPublicDoctors();
         const items = data.doctors || data.data?.doctors || [];
 
         if (active) {
